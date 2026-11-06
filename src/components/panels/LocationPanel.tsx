@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import PanelHeading from './PanelHeading';
-import { ExternalIcon, RouteIcon } from '../ornaments/Icons';
+import { ExternalIcon, PinIcon, RouteIcon } from '../ornaments/Icons';
 import { VENUE } from '../../content';
 import { fs, u } from '../../lib/units';
 import { cascade, rise } from './reveal';
@@ -9,14 +9,17 @@ import { cascade, rise } from './reveal';
 // Tono oscuro para el mapa: invierte y regresa los matices, así el pin conserva su rojo.
 const MAP_FILTER = 'invert(0.9) hue-rotate(180deg) saturate(0.85) brightness(0.95) contrast(0.9)';
 
-/** Solapa izquierda: ubicación del salón con mapa y accesos directos a la ruta. */
-export default function LocationPanel({ show }: { show: boolean }) {
-  // el mapa se carga hasta que la solapa se muestra por primera vez
+/**
+ * Solapa izquierda: ubicación del salón con mapa y accesos directos a la ruta.
+ * `loadMap` decide cuándo cargar Google Maps (pesa ~1 MB de JavaScript): no durante
+ * la celebración de apertura, sino después o cuando la persona abre esta solapa.
+ */
+export default function LocationPanel({ show, loadMap }: { show: boolean; loadMap: boolean }) {
   const [mapRequested, setMapRequested] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   useEffect(() => {
-    if (show) setMapRequested(true);
-  }, [show]);
+    if (show && loadMap) setMapRequested(true);
+  }, [show, loadMap]);
 
   return (
     <div className="no-scrollbar absolute inset-0 overflow-y-auto overscroll-contain" style={{ padding: `${u(11)} ${u(9)} ${u(10)}` }}>
@@ -34,6 +37,16 @@ export default function LocationPanel({ show }: { show: boolean }) {
           className="relative w-full flex-1 overflow-hidden rounded-[10px] border border-gold-400/60 bg-navy-950"
           style={{ minHeight: u(62), maxHeight: u(100), boxShadow: '0 12px 30px -12px rgba(0,0,0,0.7)' }}
         >
+          {/* mientras carga: un pin que late en el centro */}
+          {!mapLoaded && (
+            <motion.span
+              className="absolute inset-0 grid place-items-center text-gold-400"
+              animate={{ opacity: [0.35, 0.9, 0.35], y: [0, -4, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <PinIcon style={{ width: u(10), height: u(10) }} />
+            </motion.span>
+          )}
           {mapRequested && (
             <motion.iframe
               title={`Mapa de ${VENUE.name}`}

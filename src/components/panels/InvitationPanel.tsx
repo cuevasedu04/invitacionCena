@@ -8,7 +8,7 @@ import Bounce from '../ornaments/Bounce';
 import { INVITATION, VENUE } from '../../content';
 import { EASE_OUT, fs, u } from '../../lib/units';
 import { bloom, cascade, rise } from './reveal';
-import logo from '../../assets/logo-aduanas.png';
+import AduanasLogo from './AduanasLogo';
 
 type Icon = ComponentType<{ className?: string; style?: CSSProperties }>;
 
@@ -61,13 +61,7 @@ export default function InvitationPanel({ show, onShowLocation }: { show: boolea
           style={{ gap: u(3) }}
         >
           <header className="flex flex-col items-center">
-            <motion.img
-              variants={rise}
-              src={logo}
-              alt="Aduanas · Agencia Nacional de Aduanas de México"
-              draggable={false}
-              style={{ width: u(44) }}
-            />
+            <AduanasLogo variants={rise} show={show} />
             <motion.p
               variants={rise}
               className="font-serif font-semibold text-gold-100"

@@ -60,21 +60,32 @@ function makeParticle(kind: Kind, x: number, y: number, vx: number, vy: number, 
   };
 }
 
-export default function Celebration({ burst, origin }: { burst: number; origin: () => { x: number; y: number } }) {
+interface CelebrationProps {
+  burst: number;
+  origin: () => { x: number; y: number };
+  /** avisa cuando la animación empieza y termina (para pausar otros efectos mientras tanto) */
+  onActiveChange?: (active: boolean) => void;
+}
+
+export default function Celebration({ burst, origin, onActiveChange }: CelebrationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particles = useRef<Particle[]>([]);
   const raf = useRef(0);
   const reduce = useReducedMotion();
   const originRef = useRef(origin);
   originRef.current = origin;
+  const activeRef = useRef(onActiveChange);
+  activeRef.current = onActiveChange;
 
   useEffect(() => {
     if (!burst || reduce) return;
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    const ctx = canvas?.getContext('2d', { alpha: true, desynchronized: true });
     if (!canvas || !ctx) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // las partículas son pequeñas y se mueven rápido: 1.5x basta y en celulares 3x
+    // significa dibujar 4 veces menos píxeles por cuadro
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const resize = () => {
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
@@ -85,6 +96,9 @@ export default function Celebration({ burst, origin }: { burst: number; origin: 
     const w = window.innerWidth;
     const h = window.innerHeight;
     const power = Math.min(2.2, Math.max(1, w / 420));
+    // menos partículas en pantallas chicas (celulares), más en escritorio
+    const density = Math.min(1, Math.max(0.6, (w * h) / (1280 * 800)));
+    const n = (count: number) => Math.round(count * density);
     const { x: ox, y: oy } = originRef.current();
     const list: Particle[] = [];
 
@@ -96,53 +110,46 @@ export default function Celebration({ burst, origin }: { burst: number; origin: 
         list.push(makeParticle(kind, ox + rand(-20, 20), oy + rand(-30, 30), Math.cos(a) * v, Math.sin(a) * v - 2, rand(0, 0.12)));
       }
     };
-    fountain(130, 'flake', [5, 15]);
-    fountain(45, 'spark', [6, 16]);
-    fountain(12, 'ribbon', [6, 13]);
+    fountain(n(120), 'flake', [5, 15]);
+    fountain(n(36), 'spark', [6, 16]);
+    fountain(n(12), 'ribbon', [6, 13]);
 
     // lluvia suave desde arriba, escalonada
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < n(80); i++) {
       list.push(makeParticle('flake', rand(0, w), rand(-80, -10), rand(-0.6, 0.6), rand(1, 2.6), rand(0.5, 2.6)));
     }
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < n(9); i++) {
       list.push(makeParticle('ribbon', rand(0, w), rand(-120, -40), rand(-0.4, 0.4), rand(1.2, 2.2), rand(0.6, 2.4)));
     }
     particles.current.push(...list);
+    activeRef.current?.(true);
 
     let last = performance.now();
     const drawRibbon = (p: Particle, alpha: number) => {
-      const steps = 16;
+      const steps = 12;
       const thick = 1 + p.size * 0.22;
       const amp = 3 + p.size * 0.6;
-      ctx.save();
-      ctx.translate(p.x * dpr, p.y * dpr);
-      ctx.rotate(p.angle);
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      for (const [width, shade] of [
-        [thick, 0.75],
-        [thick * 0.4, 1]
-      ] as const) {
-        ctx.beginPath();
-        for (let i = 0; i <= steps; i++) {
-          const s = (i / steps - 0.5) * p.length;
-          const yy = Math.sin(s * p.curl + p.tilt * 2) * amp * Math.cos(p.tilt * 0.5);
-          if (i === 0) ctx.moveTo(s * dpr, yy * dpr);
-          else ctx.lineTo(s * dpr, yy * dpr);
-        }
-        ctx.strokeStyle = shade < 1 ? p.color : '#fff8e1';
-        ctx.globalAlpha = alpha * (shade < 1 ? 1 : 0.45);
-        ctx.lineWidth = width * dpr;
-        ctx.stroke();
+      const cos = Math.cos(p.angle) * dpr;
+      const sin = Math.sin(p.angle) * dpr;
+      ctx.setTransform(cos, sin, -sin, cos, p.x * dpr, p.y * dpr);
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const s = (i / steps - 0.5) * p.length;
+        const yy = Math.sin(s * p.curl + p.tilt * 2) * amp * Math.cos(p.tilt * 0.5);
+        if (i === 0) ctx.moveTo(s, yy);
+        else ctx.lineTo(s, yy);
       }
-      ctx.restore();
+      ctx.strokeStyle = p.color;
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = thick;
+      ctx.stroke();
     };
 
     const drawSpark = (p: Particle, alpha: number) => {
-      const r = p.size * dpr * (0.6 + 0.4 * Math.abs(Math.sin(p.tilt * 2)));
-      ctx.save();
-      ctx.translate(p.x * dpr, p.y * dpr);
-      ctx.rotate(p.angle * 0.3);
+      const r = p.size * (0.6 + 0.4 * Math.abs(Math.sin(p.tilt * 2)));
+      const cos = Math.cos(p.angle * 0.3) * dpr;
+      const sin = Math.sin(p.angle * 0.3) * dpr;
+      ctx.setTransform(cos, sin, -sin, cos, p.x * dpr, p.y * dpr);
       ctx.globalAlpha = alpha;
       ctx.fillStyle = '#fff6d6';
       ctx.beginPath();
@@ -152,27 +159,28 @@ export default function Celebration({ burst, origin }: { burst: number; origin: 
       ctx.quadraticCurveTo(0, 0, -r, 0);
       ctx.quadraticCurveTo(0, 0, 0, -r);
       ctx.fill();
-      ctx.restore();
     };
 
     const drawFlake = (p: Particle, alpha: number) => {
       // el giro en 3D se simula aplanando el rectángulo; brilla cuando queda de frente
       const flip = Math.cos(p.tilt);
-      ctx.save();
-      ctx.translate(p.x * dpr, p.y * dpr);
-      ctx.rotate(p.angle);
-      ctx.scale(1, Math.abs(flip) * 0.9 + 0.1);
+      const squash = Math.abs(flip) * 0.9 + 0.1;
+      const cos = Math.cos(p.angle) * dpr;
+      const sin = Math.sin(p.angle) * dpr;
+      ctx.setTransform(cos, sin, -sin * squash, cos * squash, p.x * dpr, p.y * dpr);
       ctx.globalAlpha = alpha;
       ctx.fillStyle = Math.abs(flip) > 0.92 ? '#fffaf0' : p.color;
-      ctx.fillRect((-p.size / 2) * dpr, (-p.size / 3) * dpr, p.size * dpr, (p.size / 1.5) * dpr);
-      ctx.restore();
+      ctx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size / 1.5);
     };
 
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const f = dt * 60;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       const alive: Particle[] = [];
       for (const p of particles.current) {
         if (p.delay > 0) {
@@ -198,7 +206,11 @@ export default function Celebration({ burst, origin }: { burst: number; origin: 
       particles.current = alive;
       ctx.globalAlpha = 1;
       if (alive.length) raf.current = requestAnimationFrame(tick);
-      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      else {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        activeRef.current?.(false);
+      }
     };
     cancelAnimationFrame(raf.current);
     raf.current = requestAnimationFrame(tick);

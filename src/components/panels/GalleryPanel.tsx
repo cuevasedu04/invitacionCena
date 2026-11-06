@@ -12,6 +12,16 @@ const photos = Object.values(
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+/** Descarga y decodifica las fotos con anticipación, para no hacerlo al abrir el folleto. */
+export function preloadGallery() {
+  for (const src of photos) {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = src;
+    img.decode?.().catch(() => undefined);
+  }
+}
+
 /** Solapa derecha: fotografías del salón en una pila infinita (React Bits · Stack). */
 export default function GalleryPanel({ show }: { show: boolean }) {
   const [top, setTop] = useState(0);

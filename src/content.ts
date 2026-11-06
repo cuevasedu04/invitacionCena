@@ -23,3 +23,13 @@ export const INVITATION = {
   message:
     'Celebremos los logros de 2026 y el compromiso que nos une, reafirmando la honestidad y la transparencia que distinguen nuestro servicio.'
 };
+
+export const AUDIO = {
+  /**
+   * Música de fondo. Vacío = pieza instrumental generada en vivo (sin archivos ni licencias).
+   * Para usar una canción propia, coloca el MP3 en public/audio/ y escribe su ruta,
+   * p. ej. './audio/musica.mp3' (asegúrate de tener derechos de uso).
+   */
+  musicUrl: '',
+  musicVolume: 0.35
+};

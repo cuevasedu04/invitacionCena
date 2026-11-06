@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import Particles from './reactbits/Particles';
 
 /** Fondo: navy profundo con un halo central y destellos dorados flotando (React Bits · Particles). */
-export default function Backdrop() {
+export default function Backdrop({ paused = false }: { paused?: boolean }) {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0">
       <div
@@ -32,6 +32,7 @@ export default function Backdrop() {
           driftSpeed={0.25}
           opacity={0.75}
           pixelRatio={Math.min(window.devicePixelRatio || 1, 2)}
+          paused={paused}
         />
       </motion.div>
       {/* viñeta para concentrar la mirada en el folleto */}

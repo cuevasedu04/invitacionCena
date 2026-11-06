@@ -15,9 +15,11 @@ import FlapInner from './FlapInner';
 import Seal from './Seal';
 import SwipeHint from './SwipeHint';
 import PanelNav, { type PanelId } from './PanelNav';
+import SoundToggle from './SoundToggle';
+import { sound } from '../../audio/soundEngine';
 import InvitationPanel from '../panels/InvitationPanel';
 import LocationPanel from '../panels/LocationPanel';
-import GalleryPanel from '../panels/GalleryPanel';
+import GalleryPanel, { preloadGallery } from '../panels/GalleryPanel';
 import { FoldIcon } from '../ornaments/Icons';
 import Celebration from '../Celebration';
 import { useGeometry } from '../../hooks/useGeometry';
@@ -44,7 +46,12 @@ const SWIPE_THRESHOLD = 0.18;
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const clampPanel = (v: number) => Math.max(-1, Math.min(1, v)) as PanelId;
 
-export default function Brochure() {
+interface BrochureProps {
+  /** true cuando conviene pausar el fondo animado (celebración en curso o fondo tapado) */
+  onBackdropPausedChange?: (paused: boolean) => void;
+}
+
+export default function Brochure({ onBackdropPausedChange }: BrochureProps) {
   const geo = useGeometry();
   const carousel = geo.mode === 'carousel';
   const reduceMotion = useReducedMotion();
@@ -66,11 +73,14 @@ export default function Brochure() {
   const panelRef = useRef<PanelId>(0);
 
   const [celebration, setCelebration] = useState(0);
+  const [celebrating, setCelebrating] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const controls = useRef<AnimationPlaybackControls | null>(null);
   const trackControls = useRef<AnimationPlaybackControls | null>(null);
   const dragStart = useRef(0);
   const interacted = useRef(false);
+  // la hoja ya sonó durante este arrastre (para no repetirla al soltar)
+  const turnPlayed = useRef(false);
   const swipe = useRef({ active: false, base: 0, endedAt: 0, used: false });
 
   const leftAngle = useTransform(progress, [0, 1], [0, -180]);
@@ -89,6 +99,8 @@ export default function Brochure() {
   const unfold = useCallback(() => {
     setPhase('unfolding');
     setCelebration(n => n + 1);
+    sound.celebrate();
+    sound.startMusic();
     controls.current = animate(spread, 1, {
       duration: reduceMotion ? 0.3 : 1.05,
       ease: EASE_IN_OUT,
@@ -99,6 +111,8 @@ export default function Brochure() {
   const open = useCallback(() => {
     if (phaseRef.current !== 'closed') return;
     interacted.current = true;
+    if (!turnPlayed.current) sound.pageTurn();
+    turnPlayed.current = false;
     controls.current?.stop();
     const remaining = 1 - progress.get();
     controls.current = animate(progress, 1, {
@@ -110,6 +124,7 @@ export default function Brochure() {
 
   const goTo = useCallback(
     (target: PanelId) => {
+      if (target !== panelRef.current && phaseRef.current === 'open') sound.pageTurn(true);
       panelRef.current = target;
       setPanel(target);
       trackControls.current?.stop();
@@ -123,6 +138,8 @@ export default function Brochure() {
   const close = useCallback(() => {
     if (phaseRef.current !== 'open') return;
     setPhase('folding');
+    sound.pageTurn();
+    sound.stopMusic();
     goTo(0);
     controls.current = animate(spread, 0, {
       duration: reduceMotion ? 0.3 : 0.85,
@@ -157,6 +174,7 @@ export default function Brochure() {
 
   const handleOpenPanStart = () => {
     interacted.current = true;
+    turnPlayed.current = false;
     controls.current?.stop();
     dragStart.current = progress.get();
   };
@@ -164,7 +182,14 @@ export default function Brochure() {
   // Cualquier deslizamiento horizontal (o hacia arriba) abre ambas solapas a la vez.
   const handleOpenPan = (_: PointerEvent, info: PanInfo) => {
     const distance = Math.max(Math.abs(info.offset.x), -info.offset.y * 0.9);
-    progress.set(clamp01(dragStart.current + distance / (geo.w * DRAG_TRAVEL)));
+    const next = clamp01(dragStart.current + distance / (geo.w * DRAG_TRAVEL));
+    progress.set(next);
+    // la hoja suena mientras se arrastra (en celular, el navegador sólo lo permite
+    // después del primer toque; entonces suena al soltar, desde open())
+    if (!turnPlayed.current && next > 0.12 && sound.isReady) {
+      sound.pageTurn();
+      turnPlayed.current = true;
+    }
   };
 
   const handleOpenPanEnd = (_: PointerEvent, info: PanInfo) => {
@@ -255,6 +280,22 @@ export default function Brochure() {
       : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
   };
 
+  // el sonido se habilita con el primer gesto de la persona
+  useEffect(() => sound.arm(), []);
+
+  // fotos de la galería: se descargan mientras el folleto sigue cerrado
+  useEffect(() => {
+    const id = window.setTimeout(preloadGallery, 1800);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  // el fondo de partículas se pausa durante la celebración y cuando el folleto
+  // abierto lo tapa casi por completo (celular)
+  const backdropPaused = celebrating || (carousel && phase !== 'closed');
+  useEffect(() => {
+    onBackdropPausedChange?.(backdropPaused);
+  }, [backdropPaused, onBackdropPausedChange]);
+
   /* ---------- render ---------- */
 
   const isClosed = phase === 'closed';
@@ -272,7 +313,7 @@ export default function Brochure() {
 
   return (
     <motion.div className="relative z-10 flex h-full flex-col" style={vars}>
-      <Celebration burst={celebration} origin={celebrationOrigin} />
+      <Celebration burst={celebration} origin={celebrationOrigin} onActiveChange={setCelebrating} />
       <div className="relative flex min-h-0 flex-1 items-center justify-center" style={{ perspective: '1600px' }}>
         <motion.div
           className="relative"
@@ -355,7 +396,7 @@ export default function Brochure() {
             ) : (
               <>
                 <SidePanel side="left" quiet={showContent}>
-                  <LocationPanel show={showContent} />
+                  <LocationPanel show={showContent} loadMap={!celebrating || (carousel && panel === -1)} />
                 </SidePanel>
                 <SidePanel side="right" quiet={showContent}>
                   <GalleryPanel show={showContent} />
@@ -381,8 +422,9 @@ export default function Brochure() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0, transition: { duration: 0.7, delay: 0.5, ease: EASE_OUT } }}
               exit={{ opacity: 0, y: 12, transition: { duration: 0.25 } }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 max-[399px]:gap-1.5"
             >
+              <SoundToggle />
               {carousel && <PanelNav active={panel} onSelect={goTo} />}
               <CloseButton onClick={close} compact={carousel} />
             </motion.div>
@@ -479,7 +521,7 @@ function CloseButton({ onClick, compact }: { onClick: () => void; compact: boole
       aria-label="Cerrar invitación"
       title="Cerrar invitación"
       className={`flex cursor-pointer items-center justify-center gap-2 rounded-full border border-gold-400/30 bg-navy-950/70 font-sans text-[11px] uppercase tracking-[0.25em] text-gold-300/80 backdrop-blur-md transition-colors hover:text-gold-200 ${
-        compact ? 'h-[42px] w-[42px] shrink-0' : 'px-5 py-2.5'
+        compact ? 'h-[42px] w-[42px] shrink-0 max-[399px]:h-[38px] max-[399px]:w-[38px]' : 'px-5 py-2.5'
       }`}
     >
       <FoldIcon className="h-4 w-4" />

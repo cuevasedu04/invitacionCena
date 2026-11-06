@@ -26,7 +26,7 @@ export default function PanelNav({ active, onSelect }: { active: PanelId; onSele
             type="button"
             aria-current={isActive ? 'true' : undefined}
             onClick={() => onSelect(item.id)}
-            className={`relative flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-2 font-sans text-[10px] font-medium uppercase tracking-[0.1em] min-[440px]:px-4 min-[440px]:text-[11px] min-[440px]:tracking-[0.16em] transition-colors duration-300 ${
+            className={`relative flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-2 max-[399px]:px-2 font-sans text-[10px] font-medium uppercase tracking-[0.1em] min-[440px]:px-4 min-[440px]:text-[11px] min-[440px]:tracking-[0.16em] transition-colors duration-300 ${
               isActive ? 'text-navy-950' : 'text-gold-300/80 hover:text-gold-200'
             }`}
           >
