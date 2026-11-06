@@ -67,3 +67,72 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ------------------------------------------------------------------
+   Animaciones en bucle: sólo transform/opacity, en CSS. El navegador las
+   corre en el compositor (GPU) sin despertar al JavaScript ni repintar.
+   ------------------------------------------------------------------ */
+@keyframes inv-bounce {
+  0%, 25%, 100% { transform: translateY(0) scaleY(1); }
+  7% { transform: translateY(-26%) scaleY(1.04); }
+  13% { transform: translateY(0) scaleY(0.92); }
+  18% { transform: translateY(-9%) scaleY(1.02); }
+}
+@keyframes inv-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+@keyframes inv-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes inv-sweep {
+  0% { transform: translateX(-120%); }
+  25%, 100% { transform: translateX(260%); }
+}
+/* sin var() dentro de los keyframes: así el navegador las corre en el compositor */
+@keyframes inv-eq {
+  0%, 100% { transform: scaleY(0.25); }
+  30% { transform: scaleY(1); }
+  60% { transform: scaleY(0.45); }
+  80% { transform: scaleY(0.8); }
+}
+.inv-bounce { transform-origin: 50% 100%; animation: inv-bounce 4.55s infinite both; }
+.inv-pulse { animation: inv-pulse 2.4s ease-in-out infinite; }
+.inv-breathe { animation: inv-breathe 4.8s ease-in-out infinite; }
+.inv-sweep { animation: inv-sweep 6s cubic-bezier(0.45, 0, 0.25, 1) infinite both; }
+.inv-eq { transform-origin: 50% 100%; animation: inv-eq 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .inv-bounce, .inv-pulse, .inv-breathe, .inv-sweep, .inv-eq { animation: none; }
+}
+@keyframes inv-halo {
+  0%, 100% { opacity: 0.25; transform: scale(0.92); }
+  50% { opacity: 0.9; transform: scale(1.06); }
+}
+@keyframes inv-nudge-left {
+  0%, 100% { opacity: 0.4; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(-6px); }
+}
+@keyframes inv-nudge-right {
+  0%, 100% { opacity: 0.4; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(6px); }
+}
+@keyframes inv-twinkle {
+  0%, 100% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.4) rotate(0deg); }
+  50% { opacity: 1; transform: translate3d(0, -14px, 0) scale(1) rotate(45deg); }
+}
+.inv-halo { animation: inv-halo 2.8s ease-in-out infinite; }
+.inv-nudge-left { animation: inv-nudge-left 1.8s ease-in-out infinite; }
+.inv-nudge-right { animation: inv-nudge-right 1.8s ease-in-out infinite; }
+.inv-twinkle { animation: inv-twinkle 5s ease-in-out infinite both; }
+@media (prefers-reduced-motion: reduce) {
+  .inv-halo, .inv-nudge-left, .inv-nudge-right, .inv-twinkle { animation: none; }
+}
+@keyframes inv-twinkle-layer {
+  0%, 100% { opacity: 0.15; transform: translate3d(0, 0, 0); }
+  50% { opacity: 1; transform: translate3d(0, -10px, 0); }
+}
+.inv-twinkle-layer { animation: inv-twinkle-layer 5s ease-in-out infinite both; }
+@media (prefers-reduced-motion: reduce) {
+  .inv-twinkle-layer { animation: none; }
+}

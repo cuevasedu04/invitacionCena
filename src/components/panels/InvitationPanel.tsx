@@ -1,5 +1,5 @@
-import { useEffect, type ComponentType, type CSSProperties, type ReactNode } from 'react';
-import { animate, motion, useMotionTemplate, useMotionValue, useReducedMotion } from 'motion/react';
+import { type ComponentType, type CSSProperties, type ReactNode } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import ShinyText from '../reactbits/ShinyText';
 import GradientText from '../reactbits/GradientText';
 import { ArtDecoCorner, GoldRule } from '../ornaments/Ornaments';
@@ -18,8 +18,8 @@ const BOUNCE_STEP = 0.32;
 const bounceDelay = (order: number) => BOUNCE_START + order * BOUNCE_STEP;
 
 const growRule = {
-  hidden: { scaleX: 0, opacity: 0 },
-  show: { scaleX: 1, opacity: 1, transition: { duration: 1.1, ease: EASE_OUT } }
+  hidden: { transform: 'scaleX(0)', opacity: 0 },
+  show: { transform: 'scaleX(1)', opacity: 1, transition: { duration: 1.1, ease: EASE_OUT } }
 };
 
 /** Panel central: la invitación con todos sus datos. */
@@ -49,8 +49,6 @@ export default function InvitationPanel({ show, onShowLocation }: { show: boolea
         style={{
           inset: u(4.4),
           padding: `${u(5)} ${u(4.6)} ${u(3.5)}`,
-          maskImage: `linear-gradient(to bottom, transparent, black ${u(3)}, black calc(100% - ${u(4)}), transparent)`,
-          WebkitMaskImage: `linear-gradient(to bottom, transparent, black ${u(3)}, black calc(100% - ${u(4)}), transparent)`
         }}
       >
         <motion.div
@@ -82,15 +80,16 @@ export default function InvitationPanel({ show, onShowLocation }: { show: boolea
                 color="#d9b766"
                 shineColor="#fff6d6"
                 speed={3.4}
-                delay={1.6}
+                delay={5.5}
                 shineWidth={30}
                 glow={0.3}
+                disabled={!show}
                 className="px-[0.18em] pb-[0.14em]"
                 style={{ fontSize: u(11.5), whiteSpace: 'nowrap' }}
               />
             </motion.h1>
             <div className="flex w-full items-center font-serif" style={{ gap: u(3), fontSize: u(4.5) }}>
-              <motion.span className="flex flex-1" variants={growRule} style={{ originX: 1 }}>
+              <motion.span className="flex flex-1" variants={growRule} style={{ transformOrigin: 'right center' }}>
                 <GoldRule side="left" />
               </motion.span>
               <motion.span
@@ -100,7 +99,7 @@ export default function InvitationPanel({ show, onShowLocation }: { show: boolea
               >
                 {INVITATION.year}
               </motion.span>
-              <motion.span className="flex flex-1" variants={growRule} style={{ originX: 0 }}>
+              <motion.span className="flex flex-1" variants={growRule} style={{ transformOrigin: 'left center' }}>
                 <GoldRule side="right" />
               </motion.span>
             </div>
@@ -157,28 +156,27 @@ export default function InvitationPanel({ show, onShowLocation }: { show: boolea
           <DressCode show={show} />
         </motion.div>
       </div>
+      {/* desvanecido en los bordes del área desplazable (sin mask-image: no obliga a repintar) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute"
+        style={{ top: u(4.4), left: u(4.4), right: u(4.4), height: u(3), background: 'linear-gradient(#0a1c3f, rgba(10,28,63,0))' }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute"
+        style={{ bottom: u(4.4), left: u(4.4), right: u(4.4), height: u(4), background: 'linear-gradient(rgba(1,10,26,0), #010a1a)' }}
+      />
     </div>
   );
 }
 
 /**
  * Mensaje central con más protagonismo: oro en movimiento (React Bits · GradientText)
- * que se revela con un barrido de luz diagonal, enmarcado por comillas caligráficas.
+ * que se revela de izquierda a derecha, enmarcado por comillas caligráficas.
  */
 function Message({ show }: { show: boolean }) {
   const reduce = useReducedMotion();
-  const sweep = useMotionValue(-40);
-  const mask = useMotionTemplate`linear-gradient(110deg, #000 ${sweep}%, transparent calc(${sweep}% + 35%))`;
-
-  useEffect(() => {
-    if (!show) {
-      sweep.set(-40);
-      return;
-    }
-    const controls = animate(sweep, 105, { duration: reduce ? 0.2 : 2.2, delay: reduce ? 0 : 0.9, ease: [0.45, 0, 0.25, 1] });
-    return () => controls.stop();
-  }, [show, sweep, reduce]);
-
   return (
     <motion.div variants={rise} className="relative w-full" style={{ paddingInline: u(1.5) }}>
       <span
@@ -188,19 +186,28 @@ function Message({ show }: { show: boolean }) {
       >
         “
       </span>
+      {/* revelado de izquierda a derecha con clip-path: lo acelera el compositor */}
       <motion.p
         className="font-serif font-medium italic"
-        style={{ fontSize: fs(4.2, 14.5), lineHeight: 1.42, textWrap: 'balance', maskImage: mask, WebkitMaskImage: mask }}
+        style={{ fontSize: fs(4.2, 14.5), lineHeight: 1.42, textWrap: 'balance' }}
+        initial={false}
+        animate={{ clipPath: show ? 'inset(-20% 0% -20% 0%)' : 'inset(-20% 100% -20% 0%)' }}
+        transition={show ? { duration: reduce ? 0.2 : 2, delay: reduce ? 0 : 0.9, ease: [0.45, 0, 0.25, 1] } : { duration: 0.2 }}
       >
-        <GradientText
-          colors={['#c49a45', '#ecd590', '#fff6d6', '#f5e6a8', '#d9b766']}
-          animationSpeed={7}
-          angle={105}
-          scale={2.4}
-          glow={0.35}
-        >
-          {INVITATION.message}
-        </GradientText>
+        {/* el oro animado sólo corre con el folleto abierto (antes estaba oculto, pero animándose) */}
+        {show ? (
+          <GradientText
+            colors={['#c49a45', '#ecd590', '#fff6d6', '#f5e6a8', '#d9b766']}
+            animationSpeed={7}
+            angle={105}
+            scale={2.4}
+            glow={0.35}
+          >
+            {INVITATION.message}
+          </GradientText>
+        ) : (
+          <span className="gold-text">{INVITATION.message}</span>
+        )}
       </motion.p>
       <span
         aria-hidden="true"
@@ -226,27 +233,29 @@ function Schedule() {
       <motion.span
         aria-hidden="true"
         className="absolute h-px bg-gradient-to-r from-gold-500/30 via-gold-300/80 to-gold-500/30"
-        style={{ top: u(0.8), left: '16.66%', right: '16.66%', originX: 0 }}
-        variants={{ hidden: { scaleX: 0 }, show: { scaleX: 1, transition: { duration: 1.4, ease: EASE_OUT, delay: 0.2 } } }}
+        style={{ top: u(0.8), left: '16.66%', right: '16.66%', transformOrigin: 'left center' }}
+        variants={{ hidden: { transform: 'scaleX(0)' }, show: { transform: 'scaleX(1)', transition: { duration: 1.4, ease: EASE_OUT, delay: 0.2 } } }}
       />
       {SCHEDULE.map(item => (
         <div key={item.label} className="relative flex flex-col items-center">
-          <motion.span
-            className="rounded-full border border-gold-300 bg-navy-900"
-            style={{ width: u(1.8), height: u(1.8), background: item.main ? '#ecd590' : undefined }}
-            animate={
-              item.main
-                ? {
-                    boxShadow: [
-                      '0 0 0 2px rgba(217,183,102,0.15), 0 0 8px rgba(236,213,144,0.4)',
-                      '0 0 0 5px rgba(217,183,102,0.05), 0 0 16px rgba(236,213,144,0.85)',
-                      '0 0 0 2px rgba(217,183,102,0.15), 0 0 8px rgba(236,213,144,0.4)'
-                    ]
-                  }
-                : undefined
-            }
-            transition={item.main ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } : undefined}
-          />
+          <span
+            className="relative rounded-full border border-gold-300 bg-navy-900"
+            style={{
+              width: u(1.8),
+              height: u(1.8),
+              background: item.main ? '#ecd590' : undefined,
+              boxShadow: item.main ? '0 0 0 2px rgba(217,183,102,0.15)' : undefined
+            }}
+          >
+            {/* halo que late: opacidad y escala en el compositor */}
+            {item.main && (
+              <span
+                aria-hidden="true"
+                className="inv-pulse absolute rounded-full"
+                style={{ inset: `-${u(1.6)}`, background: 'radial-gradient(closest-side, rgba(236,213,144,0.85), rgba(236,213,144,0))' }}
+              />
+            )}
+          </span>
           <span
             className="font-sans font-semibold uppercase text-gold-300"
             style={{ fontSize: fs(2.3, 9), letterSpacing: '0.2em', paddingLeft: '0.2em', marginTop: u(1.4) }}

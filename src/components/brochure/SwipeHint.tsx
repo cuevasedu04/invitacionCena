@@ -1,12 +1,10 @@
 import { motion, type MotionValue } from 'motion/react';
 
 const Chevron = ({ dir }: { dir: 'left' | 'right' }) => (
-  <motion.svg
+  <svg
     viewBox="0 0 24 24"
     aria-hidden="true"
-    className="h-4 w-4 text-gold-300"
-    animate={{ x: dir === 'left' ? [0, -6, 0] : [0, 6, 0], opacity: [0.4, 1, 0.4] }}
-    transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+    className={`h-4 w-4 text-gold-300 ${dir === 'left' ? 'inv-nudge-left' : 'inv-nudge-right'}`}
   >
     <path
       d={dir === 'left' ? 'M15 5 L8 12 L15 19' : 'M9 5 L16 12 L9 19'}
@@ -16,7 +14,7 @@ const Chevron = ({ dir }: { dir: 'left' | 'right' }) => (
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-  </motion.svg>
+  </svg>
 );
 
 /** Indicación bajo el folleto; se desvanece en cuanto se empieza a abrir. */

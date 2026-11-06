@@ -24,7 +24,7 @@ export default function PanelHeading({ eyebrow, title, subtitle }: { eyebrow: st
           color="#d9b766"
           shineColor="#fff6d6"
           speed={3.4}
-          delay={2.2}
+          delay={6}
           shineWidth={30}
           glow={0.3}
           className="px-[0.18em] pb-[0.14em]"

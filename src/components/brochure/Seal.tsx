@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { Sparkle } from '../ornaments/Ornaments';
 
 /** Sello dorado sobre la unión de las solapas: también abre el folleto con un toque. */
@@ -13,12 +12,10 @@ export default function Seal({ onActivate, disabled }: { onActivate: () => void;
       style={{ width: 'calc(var(--u) * 17)', height: 'calc(var(--u) * 17)' }}
     >
       {/* halo pulsante */}
-      <motion.span
+      <span
         aria-hidden="true"
-        className="absolute inset-0 rounded-full"
+        className="inv-halo absolute inset-0 rounded-full"
         style={{ boxShadow: '0 0 calc(var(--u) * 6) calc(var(--u) * 1) rgba(236, 213, 144, 0.45)' }}
-        animate={{ opacity: [0.25, 0.9, 0.25], scale: [0.92, 1.06, 0.92] }}
-        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
       />
       <span
         aria-hidden="true"

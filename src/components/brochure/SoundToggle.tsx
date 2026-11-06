@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { useSound } from '../../audio/useSound';
 
 /** Botón para silenciar o activar la música; las barras bailan mientras suena. */
@@ -15,12 +14,14 @@ export default function SoundToggle() {
     >
       <span className="flex h-4 items-end gap-[3px]" aria-hidden="true">
         {[0.55, 1, 0.7, 0.85].map((peak, i) => (
-          <motion.span
-            key={i}
-            className="w-[2px] rounded-full bg-current"
-            style={{ height: '100%', originY: 1 }}
-            animate={playing ? { scaleY: [0.25, peak, 0.4, peak * 0.8, 0.25] } : { scaleY: 0.2 }}
-            transition={playing ? { duration: 1.1 + i * 0.17, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.3 }}
+          <span
+            className={`w-[2px] rounded-full bg-current ${playing ? 'inv-eq' : ''}`}
+            style={{
+              transformOrigin: '50% 100%',
+              transform: 'scaleY(0.2)',
+              animationDuration: `${1.1 + i * 0.17}s`,
+              height: `${peak * 100}%`
+            }}
           />
         ))}
       </span>

@@ -5,6 +5,7 @@ import {
   motion,
   useMotionValue,
   useReducedMotion,
+  useMotionValueEvent,
   useTransform,
   type AnimationPlaybackControls,
   type MotionValue,
@@ -92,6 +93,26 @@ export default function Brochure({ onBackdropPausedChange }: BrochureProps) {
   const revealScale = useTransform(progress, [0, 1], [0.94, 1]);
   const innerGlow = useTransform(progress, [0, 0.35, 1], [0, 1, 0]);
   const sealOpacity = useTransform(progress, [0.1, 0.22], [1, 0]);
+
+  // Despliegue: se animan sólo la altura del folleto y el ancho de las solapas (en px).
+  // Antes era una variable CSS heredable en la raíz, que obligaba a recalcular los
+  // estilos de toda la invitación en cada cuadro.
+  const geoRef = useRef(geo);
+  geoRef.current = geo;
+  const cardHeight = useMotionValue(geo.hClosed);
+  const flapWidth = useMotionValue(geo.w / 2);
+  const shadowWidth = useMotionValue(geo.w * 0.9);
+  const applySpread = useCallback(
+    (v: number) => {
+      const { w, hClosed, hOpen } = geoRef.current;
+      cardHeight.set(hClosed + (hOpen - hClosed) * v);
+      flapWidth.set(w * (0.5 + 0.5 * v));
+      shadowWidth.set(w * (0.9 + 2 * v));
+    },
+    [cardHeight, flapWidth, shadowWidth]
+  );
+  useMotionValueEvent(spread, 'change', applySpread);
+  useEffect(() => applySpread(spread.get()), [geo, spread, applySpread]);
   const hintOpacity = useTransform(progress, [0.1, 0.2], [1, 0]);
 
   /* ---------- abrir / cerrar ---------- */
@@ -308,7 +329,6 @@ export default function Brochure({ onBackdropPausedChange }: BrochureProps) {
     '--h-closed': `${geo.hClosed}px`,
     '--h-open': `${geo.hOpen}px`,
     '--u': `${geo.w / 100}px`,
-    '--spread': spread
   } as unknown as Record<string, string | MotionValue<number>>;
 
   return (
@@ -328,7 +348,7 @@ export default function Brochure({ onBackdropPausedChange }: BrochureProps) {
             className="relative select-none"
             style={{
               width: 'var(--card-w)',
-              height: 'calc(var(--h-closed) + (var(--h-open) - var(--h-closed)) * var(--spread))',
+              height: cardHeight,
               perspective: 'calc(var(--card-w) * 3.2)',
               cursor: isClosed ? 'grab' : undefined
             }}
@@ -345,7 +365,7 @@ export default function Brochure({ onBackdropPausedChange }: BrochureProps) {
               className="pointer-events-none absolute left-1/2 rounded-[50%] bg-black/70 blur-2xl"
               style={{
                 top: '98%',
-                width: 'calc(var(--card-w) * (0.9 + 2 * var(--spread)))',
+                width: shadowWidth,
                 height: 'calc(var(--u) * 8)',
                 x: '-50%'
               }}
@@ -395,10 +415,10 @@ export default function Brochure({ onBackdropPausedChange }: BrochureProps) {
               </>
             ) : (
               <>
-                <SidePanel side="left" quiet={showContent}>
+                <SidePanel side="left" quiet={showContent} width={flapWidth}>
                   <LocationPanel show={showContent} loadMap={!celebrating || (carousel && panel === -1)} />
                 </SidePanel>
-                <SidePanel side="right" quiet={showContent}>
+                <SidePanel side="right" quiet={showContent} width={flapWidth}>
                   <GalleryPanel show={showContent} />
                 </SidePanel>
               </>
@@ -497,19 +517,26 @@ function Flap({ side, angle, frontShade, backShade, children }: FlapProps) {
  * Solapa ya abierta, en plano: ocupa el mismo lugar que la solapa 3D a 180°
  * y se despliega hasta el ancho completo de un panel.
  */
-function SidePanel({ side, quiet, children }: { side: 'left' | 'right'; quiet: boolean; children: ReactNode }) {
-  const style: CSSProperties = {
-    [side === 'left' ? 'right' : 'left']: '100%',
-    width: 'calc(var(--card-w) * (0.5 + 0.5 * var(--spread)))'
-  };
+function SidePanel({
+  side,
+  quiet,
+  width,
+  children
+}: {
+  side: 'left' | 'right';
+  quiet: boolean;
+  width: MotionValue<number>;
+  children: ReactNode;
+}) {
+  const style: CSSProperties = { [side === 'left' ? 'right' : 'left']: '100%' };
   return (
-    <div className="absolute top-0 h-full overflow-hidden" style={style}>
+    <motion.div className="absolute top-0 h-full overflow-hidden" style={{ ...style, width }}>
       <FlapInner side={side} quiet={quiet} />
       {/* el contenido se maqueta al ancho final y queda anclado al pliegue */}
       <div className="absolute top-0 h-full" style={{ width: 'var(--card-w)', [side === 'left' ? 'right' : 'left']: 0 }}>
         {children}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

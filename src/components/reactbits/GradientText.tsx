@@ -130,6 +130,8 @@ export default function GradientText({
       root.style.setProperty('--gt-gradient', image);
     };
 
+    // [invitación] el degradado se mueve lento: 15 repintados por segundo bastan
+    let lastPaint = 0;
     const tick = (now: number) => {
       raf = 0;
       if (!alive) return;
@@ -145,7 +147,10 @@ export default function GradientText({
       state.vy += ((state.y - state.py) * stiffness - state.vy * 2 * Math.sqrt(stiffness)) * dt;
       state.px += state.vx * dt;
       state.py += state.vy * dt;
-      paint();
+      if (now - lastPaint >= 66) {
+        paint();
+        lastPaint = now;
+      }
       const settling = Math.abs(state.pull - target) > 0.001 || Math.abs(state.vx) + Math.abs(state.vy) > 0.001;
       if (!state.visible || (paused && !settling)) return;
       raf = requestAnimationFrame(tick);

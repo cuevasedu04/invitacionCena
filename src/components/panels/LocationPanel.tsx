@@ -39,13 +39,11 @@ export default function LocationPanel({ show, loadMap }: { show: boolean; loadMa
         >
           {/* mientras carga: un pin que late en el centro */}
           {!mapLoaded && (
-            <motion.span
-              className="absolute inset-0 grid place-items-center text-gold-400"
-              animate={{ opacity: [0.35, 0.9, 0.35], y: [0, -4, 0] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <PinIcon style={{ width: u(10), height: u(10) }} />
-            </motion.span>
+            <span className="absolute inset-0 grid place-items-center text-gold-400">
+              <span className="inv-halo block">
+                <PinIcon style={{ width: u(10), height: u(10) }} />
+              </span>
+            </span>
           )}
           {mapRequested && (
             <motion.iframe

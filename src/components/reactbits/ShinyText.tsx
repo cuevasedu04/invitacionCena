@@ -197,8 +197,14 @@ const ShinyText = ({
       return `linear-gradient(${s.angle}deg, ${blend(fill, shine!, 0)} 0%, ${list.join(', ')}, ${blend(fill, shine!, 0)} 100%)`;
     };
 
+    // [invitación] el brillo se repinta a 30 fps como máximo: a esta velocidad no se
+    // nota la diferencia y el celular trabaja la mitad
+    let lastDraw = 0;
     const draw = () => {
       const s = settingsRef.current!;
+      const clock = performance.now();
+      if (state.phase === 'sweep' && clock - lastDraw < 41) return;
+      lastDraw = clock;
       const key = `${s.color}|${s.shineColor}`;
       if (key !== state.colors) {
         state.colors = key;

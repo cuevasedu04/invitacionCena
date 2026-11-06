@@ -5,7 +5,7 @@ const shine = {
   color: '#d9b766',
   shineColor: '#fff6d6',
   speed: 3.2,
-  delay: 1.4,
+  delay: 5.5,
   angle: 115,
   shineWidth: 34,
   glow: 0.35
