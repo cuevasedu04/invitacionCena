@@ -19,6 +19,7 @@ import InvitationPanel from '../panels/InvitationPanel';
 import LocationPanel from '../panels/LocationPanel';
 import GalleryPanel from '../panels/GalleryPanel';
 import { FoldIcon } from '../ornaments/Icons';
+import Celebration from '../Celebration';
 import { useGeometry } from '../../hooks/useGeometry';
 import { EASE_IN_OUT, EASE_OUT } from '../../lib/units';
 
@@ -64,6 +65,8 @@ export default function Brochure() {
   const [panel, setPanel] = useState<PanelId>(0);
   const panelRef = useRef<PanelId>(0);
 
+  const [celebration, setCelebration] = useState(0);
+  const cardRef = useRef<HTMLDivElement>(null);
   const controls = useRef<AnimationPlaybackControls | null>(null);
   const trackControls = useRef<AnimationPlaybackControls | null>(null);
   const dragStart = useRef(0);
@@ -85,6 +88,7 @@ export default function Brochure() {
 
   const unfold = useCallback(() => {
     setPhase('unfolding');
+    setCelebration(n => n + 1);
     controls.current = animate(spread, 1, {
       duration: reduceMotion ? 0.3 : 1.05,
       ease: EASE_IN_OUT,
@@ -243,6 +247,14 @@ export default function Brochure() {
     return () => window.removeEventListener('keydown', onKey);
   }, [phase, carousel, goTo]);
 
+  // la celebración brota desde la unión de las solapas
+  const celebrationOrigin = () => {
+    const rect = cardRef.current?.getBoundingClientRect();
+    return rect
+      ? { x: rect.left + rect.width / 2, y: rect.top + rect.height * 0.42 }
+      : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  };
+
   /* ---------- render ---------- */
 
   const isClosed = phase === 'closed';
@@ -260,6 +272,7 @@ export default function Brochure() {
 
   return (
     <motion.div className="relative z-10 flex h-full flex-col" style={vars}>
+      <Celebration burst={celebration} origin={celebrationOrigin} />
       <div className="relative flex min-h-0 flex-1 items-center justify-center" style={{ perspective: '1600px' }}>
         <motion.div
           className="relative"
@@ -270,6 +283,7 @@ export default function Brochure() {
           onClickCapture={swallowClickAfterSwipe}
         >
           <motion.div
+            ref={cardRef}
             className="relative select-none"
             style={{
               width: 'var(--card-w)',

@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
 import type {
   CSSProperties,
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
+  Ref,
   ReactNode
 } from 'react';
 import { animate, motion, motionValue, useReducedMotion } from 'motion/react';
@@ -33,6 +34,12 @@ interface PlaceAllOptions {
   kind?: SpringKind;
 }
 
+/** Control externo de la pila (botones anterior / siguiente). */
+export interface StackHandle {
+  next: () => void;
+  prev: () => void;
+}
+
 export interface StackProps {
   cards?: ReactNode[];
   layout?: Layout;
@@ -51,6 +58,7 @@ export interface StackProps {
   autoplayDelay?: number;
   pauseOnHover?: boolean;
   onChange?: (index: number) => void;
+  controlRef?: Ref<StackHandle>;
   className?: string;
   style?: CSSProperties;
 }
@@ -202,6 +210,7 @@ export default function Stack({
   autoplayDelay = 3000,
   pauseOnHover = false,
   onChange,
+  controlRef,
   className = '',
   style
 }: StackProps) {
@@ -442,6 +451,24 @@ export default function Stack({
     requestAnimationFrame(watch);
   };
 
+  const bringToFront = () => {
+    const s = settingsRef.current!;
+    const current = orderRef.current;
+    if (current.length < 2) return;
+    const last = current[current.length - 1];
+    if (flyingRef.current.has(last)) return;
+    const next = [last, ...current.slice(0, -1)];
+    if (!s.reduceMotion) {
+      const width = rootRef.current?.getBoundingClientRect().width || 240;
+      const values = valuesFor(last);
+      values.x.set(-width * 1.15);
+      values.rotate.set(-14);
+      values.opacity.set(1);
+      values.z.set(s.count + 1);
+    }
+    commit(next);
+  };
+
   const lean = (drag: DragState) => {
     const s = settingsRef.current!;
     if (s.reduceMotion) return;
@@ -568,10 +595,18 @@ export default function Stack({
     if (['ArrowRight', 'ArrowDown', 'Enter', ' '].includes(event.key)) {
       event.preventDefault();
       sendToBack(null);
+    } else if (['ArrowLeft', 'ArrowUp'].includes(event.key)) {
+      event.preventDefault();
+      bringToFront();
     }
   };
 
   actionsRef.current = { placeAll, sendToBack, onMove, onUp };
+
+  useImperativeHandle(controlRef, () => ({
+    next: () => actionsRef.current!.sendToBack(null),
+    prev: bringToFront
+  }));
   if (!listenersRef.current) {
     listenersRef.current = {
       move: (event: PointerEvent) => actionsRef.current!.onMove(event),
