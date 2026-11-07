@@ -1,12 +1,12 @@
 /** Datos de la invitación: un solo lugar para editar textos, horarios y ubicación. */
 
-const VENUE_QUERY = 'Le Crillon, Av. Cuauhtémoc 1438, Del Valle, Benito Juárez, 03310 Ciudad de México';
+const VENUE_QUERY = 'Le Crillon, Av. Cuauhtémoc 1438, Sta Cruz Atoyac, Benito Juárez, 03310 Ciudad de México';
 
 export const VENUE = {
   name: 'Le Crillon',
   room: 'Salón Toulouse',
   floor: '2.º piso',
-  address: ['Av. Cuauhtémoc 1438', 'Col. Del Valle, C.P. 03310', 'Benito Juárez, CDMX, México'],
+  address: ['Av. Cuauhtémoc 1438', 'Sta Cruz Atoyac, Benito Juárez', '03310 Ciudad de México, CDMX'],
   /** Enlace compartido del lugar: abre la app de Google Maps en el celular. */
   mapsUrl: 'https://maps.app.goo.gl/h3jhU6RmnQqnqLpA8',
   /** Ruta desde la ubicación actual hasta el salón. */
